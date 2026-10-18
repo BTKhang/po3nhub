@@ -15,17 +15,6 @@ interface VideoPlayerProps {
   adsReady?: boolean;
 }
 
-interface AdVideoResponse {
-  introVideos?: Array<string | { url: string }>;
-  adVideos?: Array<string | { url: string }>;
-  preroll?: string;
-  ads?: string[];
-}
-
-function chooseRandomVideo(videos: string[], fallback: string): string {
-  return videos[Math.floor(Math.random() * videos.length)] || fallback;
-}
-
 export const VideoPlayer = ({
   url,
   poster,
@@ -40,12 +29,14 @@ export const VideoPlayer = ({
   const artInstanceRef = useRef<Artplayer | null>(null);
   const onEndedRef = useRef(onEnded);
 
-  // Ad states
+  // Ad states - initialized with default intro-quancao.mp4
   const [introList, setIntroList] = useState<string[]>([
     "/intro/intro-quancao.mp4",
   ]);
-  const [adList, setAdList] = useState<string[]>([]);
-  const [adConfigLoaded, setAdConfigLoaded] = useState(false);
+  const [adList, setAdList] = useState<string[]>([
+    "/intro/intro-quancao.mp4",
+  ]);
+
   const [isAdPlaying, setIsAdPlaying] = useState(false);
   const [adType, setAdType] = useState<"preroll" | "midroll">("preroll");
   const [currentAdUrl, setCurrentAdUrl] = useState("/intro/intro-quancao.mp4");
@@ -75,29 +66,21 @@ export const VideoPlayer = ({
     let isMounted = true;
     fetch("/api/ads")
       .then((res) => res.json())
-      .then((data: AdVideoResponse) => {
+      .then((data) => {
         if (!isMounted) return;
-        const introVideos = Array.isArray(data.introVideos)
-          ? data.introVideos.map((video) =>
-              typeof video === "string" ? video : video.url,
-            )
-          : data.preroll
-            ? [data.preroll]
-            : [];
-        const adVideos = Array.isArray(data.adVideos)
-          ? data.adVideos.map((video) =>
-              typeof video === "string" ? video : video.url,
-            )
-          : data.ads || [];
-        if (introVideos.length > 0) setIntroList(introVideos);
-        setAdList(adVideos);
+        const intros = Array.isArray(data?.introVideos)
+          ? data.introVideos
+          : ["/intro/intro-quancao.mp4"];
+        const ads = Array.isArray(data?.adVideos) && data.adVideos.length > 0
+          ? data.adVideos
+          : intros;
+        if (intros.length > 0) setIntroList(intros);
+        if (ads.length > 0) setAdList(ads);
       })
       .catch(() => {
-        // use default fallback
-      })
-      .finally(() => {
-        if (isMounted) setAdConfigLoaded(true);
+        // keep default fallback
       });
+
     return () => {
       isMounted = false;
     };
@@ -144,19 +127,37 @@ export const VideoPlayer = ({
       }
     }
 
-    // Schedule next random mid-roll ad (random between 5 to 10 minutes)
+    // Schedule next random mid-roll ad (random between 4 to 8 minutes)
     if (enableAds) {
       if (nextMidrollTimeoutRef.current) {
         clearTimeout(nextMidrollTimeoutRef.current);
       }
       const randomDelay =
-        (Math.floor(Math.random() * (600 - 300 + 1)) + 300) * 1000;
+        (Math.floor(Math.random() * (480 - 240 + 1)) + 240) * 1000;
       nextMidrollTimeoutRef.current = setTimeout(() => {
-        if (adList.length === 0) return;
-        playAd("midroll", chooseRandomVideo(adList, ""));
+        const pool = adList.length > 0 ? adList : introList;
+        const randomAd = pool[Math.floor(Math.random() * pool.length)] || "/intro/intro-quancao.mp4";
+        playAd("midroll", randomAd);
       }, randomDelay);
     }
-  }, [adList, enableAds, playAd]);
+  }, [adList, introList, enableAds, playAd]);
+
+  // Auto-play the ad video element and handle browser autoplay permissions
+  useEffect(() => {
+    if (!isAdPlaying || !adVideoRef.current) return;
+    const video = adVideoRef.current;
+    video.currentTime = 0;
+
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((err) => {
+        console.warn("Browser blocked audio autoplay, playing muted:", err);
+        video.muted = true;
+        setIsAdMuted(true);
+        video.play().catch(() => {});
+      });
+    }
+  }, [isAdPlaying, currentAdUrl]);
 
   // Handle countdown during ad playback
   useEffect(() => {
@@ -175,15 +176,15 @@ export const VideoPlayer = ({
     return () => clearInterval(timer);
   }, [isAdPlaying]);
 
-  // When episode changes: trigger pre-roll intro-quancao ad
+  // When episode loads: trigger pre-roll intro-quancao ad IMMEDIATELY
   useEffect(() => {
-    if (!url || !adsReady || !adConfigLoaded) return;
+    if (!url || !adsReady) return;
 
     if (enableAds) {
-      playAd(
-        "preroll",
-        chooseRandomVideo(introList, "/intro/intro-quancao.mp4"),
-      );
+      const selectedIntro =
+        introList[Math.floor(Math.random() * introList.length)] ||
+        "/intro/intro-quancao.mp4";
+      playAd("preroll", selectedIntro);
     } else {
       setIsAdPlaying(false);
     }
@@ -193,7 +194,7 @@ export const VideoPlayer = ({
         clearTimeout(nextMidrollTimeoutRef.current);
       }
     };
-  }, [url, enableAds, adsReady, adConfigLoaded, introList, playAd]);
+  }, [url, enableAds, adsReady, introList, playAd]);
 
   // Initialize main video player (Artplayer)
   useEffect(() => {
@@ -256,7 +257,12 @@ export const VideoPlayer = ({
       });
 
       artInstanceRef.current = art;
-      art.on("video:ended", () => onEndedRef.current?.());
+
+      art.on("video:ended", () => {
+        if (onEndedRef.current) {
+          onEndedRef.current();
+        }
+      });
 
       if (onReady && art) {
         onReady(art);
@@ -296,7 +302,7 @@ export const VideoPlayer = ({
 
       if (typeof document !== "undefined") {
         const lingeringMinis = document.querySelectorAll(
-          ".art-auto-mini, .art-mini, .artplayer-app.art-auto-mini, .artplayer-mini",
+          ".art-auto-mini, .art-mini, .artplayer-app.art-auto-mini, .artplayer-mini"
         );
         lingeringMinis.forEach((el) => {
           el.remove();
@@ -309,24 +315,20 @@ export const VideoPlayer = ({
     <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-2xl transition-all duration-300 border border-white/5 ring-1 ring-white/10 group">
       {/* Main Video Viewport */}
       {isEmbed ? (
-        adsReady ? (
-          <iframe
-            src={url}
-            title={title || "Po3nHub Player"}
-            className="w-full h-full border-0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          />
-        ) : (
-          <div className="w-full h-full" />
-        )
+        <iframe
+          src={url}
+          title={title || "Po3nHub Player"}
+          className="w-full h-full border-0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
       ) : (
         <div ref={artRef} className="w-full h-full" />
       )}
 
       {/* Cinema AD OVERLAY (Pre-roll and Mid-roll) */}
       {isAdPlaying && (
-        <div className="absolute inset-0 z-30 bg-black flex flex-col justify-between select-none animate-in fade-in duration-200">
+        <div className="absolute inset-0 z-50 bg-black flex flex-col justify-between select-none animate-in fade-in duration-200">
           {/* Ad Video Stream */}
           <video
             ref={adVideoRef}
@@ -368,11 +370,26 @@ export const VideoPlayer = ({
 
             <button
               type="button"
-              onClick={() => setIsAdMuted(!isAdMuted)}
-              className="pointer-events-auto w-9 h-9 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center border border-white/20 transition-all backdrop-blur-md"
+              onClick={() => {
+                if (adVideoRef.current) {
+                  adVideoRef.current.muted = !isAdMuted;
+                }
+                setIsAdMuted(!isAdMuted);
+              }}
+              className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/60 hover:bg-black/90 text-white text-xs font-bold border border-white/20 transition-all backdrop-blur-md cursor-pointer"
               title={isAdMuted ? "Bật âm thanh quảng cáo" : "Tắt tiếng"}
             >
-              {isAdMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
+              {isAdMuted ? (
+                <>
+                  <VolumeX size={15} className="text-amber-400" />
+                  <span className="text-[11px] text-amber-300">Bật âm thanh</span>
+                </>
+              ) : (
+                <>
+                  <Volume2 size={15} />
+                  <span className="text-[11px]">Tắt tiếng</span>
+                </>
+              )}
             </button>
           </div>
 
