@@ -54,7 +54,7 @@ export const Footer = () => {
           <div className="space-y-3">
             <Po3nHubLogo size="lg" />
             <p className="text-xs sm:text-sm text-gray-400 max-w-xl leading-relaxed">
-              <strong className="text-white">Po3nHub</strong> — Nền tảng xem phim trực tuyến độ nét cao 4K Ultra HD miễn phí với giao diện điện ảnh Netflix, hỗ trợ âm thanh vòm sống động và phụ đề Vietsub, Thuyết minh độc quyền.
+              <strong className="text-white">Po3nHub</strong> — Nền tảng xem phim trực tuyến độ nét cao 4K Ultra HD miễn phí với giao diện điện ảnh cao cấp, hỗ trợ âm thanh sống động và phụ đề Vietsub, Thuyết minh độc quyền.
             </p>
             <p className="text-xs text-gray-500">
               Chủ sở hữu: <span className="font-semibold text-gray-300">Bùi Tấn Khang</span>
@@ -108,10 +108,8 @@ export const Footer = () => {
           <p>
             © {new Date().getFullYear()} <span className="text-white font-bold">Po3nHub</span>. Tất cả các nội dung được tổng hợp tự động phục vụ mục đích giải trí và trải nghiệm công nghệ.
           </p>
-          <div className="flex items-center gap-1 text-gray-400">
-            <span>Thiết kế phong cách Netflix điện ảnh với</span>
-            <Heart size={12} className="text-[#E50914] fill-[#E50914] inline mx-1" />
-            <span>cho trải nghiệm 3D mượt mà</span>
+          <div className="flex items-center gap-1 text-gray-500">
+            <span>Po3nHub Cinema — Trải nghiệm giải trí trực tuyến đỉnh cao</span>
           </div>
         </div>
       </div>

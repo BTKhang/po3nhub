@@ -54,11 +54,11 @@ export const FilterBar = () => {
           />
         </button>
         {openDropdown === "type" && (
-          <div className="absolute top-full left-0 mt-2 w-48 bg-[#10121a]/98 border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.95)] backdrop-blur-2xl z-50 p-2 space-y-1 animate-in fade-in zoom-in-95 duration-150">
+          <div className="absolute top-full left-0 mt-2 w-48 bg-[#12131a] border border-white/15 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.98)] backdrop-blur-3xl z-50 p-2 space-y-1 animate-in fade-in zoom-in-95 duration-150">
             <Link
               href="/danh-sach/phim-le"
               onClick={() => setOpenDropdown(null)}
-              className="block px-3 py-2 text-xs font-bold text-white/70 hover:text-black hover:bg-[#E50914] rounded-xl transition-all uppercase"
+              className="block px-3 py-2 text-xs font-bold text-gray-200 hover:text-white hover:bg-white/10 rounded-xl transition-all uppercase"
             >
               🎬 Phim Lẻ
             </Link>
@@ -109,7 +109,7 @@ export const FilterBar = () => {
           />
         </button>
         {openDropdown === "genre" && (
-          <div className="absolute top-full left-0 mt-2 w-72 bg-[#10121a]/98 border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.95)] backdrop-blur-2xl z-50 p-3 grid grid-cols-2 gap-1.5 text-xs font-bold animate-in fade-in zoom-in-95 duration-150 max-h-80 overflow-y-auto custom-scrollbar">
+          <div className="absolute top-full left-0 mt-2 w-72 bg-[#12131a] border border-white/15 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.98)] backdrop-blur-3xl z-50 p-3 grid grid-cols-2 gap-1.5 text-xs font-bold animate-in fade-in zoom-in-95 duration-150 max-h-80 overflow-y-auto custom-scrollbar">
             <Link
               href="/the-loai/hanh-dong"
               onClick={() => setOpenDropdown(null)}
@@ -206,11 +206,11 @@ export const FilterBar = () => {
           />
         </button>
         {openDropdown === "country" && (
-          <div className="absolute top-full left-0 mt-2 w-48 bg-[#10121a]/98 border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.95)] backdrop-blur-2xl z-50 p-2 space-y-1 animate-in fade-in zoom-in-95 duration-150">
+          <div className="absolute top-full left-0 mt-2 w-48 bg-[#12131a] border border-white/15 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.98)] backdrop-blur-3xl z-50 p-2 space-y-1 animate-in fade-in zoom-in-95 duration-150">
             <Link
               href="/quoc-gia/han-quoc"
               onClick={() => setOpenDropdown(null)}
-              className="block px-3 py-2 text-xs font-bold text-white/70 hover:text-black hover:bg-[#E50914] rounded-xl transition-all uppercase"
+              className="block px-3 py-2 text-xs font-bold text-gray-200 hover:text-white hover:bg-white/10 rounded-xl transition-all uppercase"
             >
               🇰🇷 Hàn Quốc
             </Link>

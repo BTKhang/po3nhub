@@ -240,8 +240,8 @@ export const Navbar = () => {
                     className="text-gray-400 group-hover:rotate-180 group-hover:text-white transition-transform duration-200"
                   />
                 </button>
-                <div className="absolute top-full left-0 mt-2 w-80 bg-[#141414]/98 border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.95)] backdrop-blur-2xl p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-                  <div className="px-2 py-1.5 mb-1.5 border-b border-white/[0.06] flex items-center justify-between">
+                <div className="absolute top-full left-0 mt-2 w-80 bg-[#12131a] border border-white/15 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.98)] backdrop-blur-3xl p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="px-2 py-1.5 mb-1.5 border-b border-white/10 flex items-center justify-between">
                     <span className="text-xs font-bold text-[#FF4D4D] flex items-center gap-1.5">
                       <Sparkles size={12} />
                       Khám phá theo thể loại
@@ -252,10 +252,10 @@ export const Navbar = () => {
                       <Link
                         key={g.slug}
                         href={`/the-loai/${g.slug}`}
-                        className={`px-2.5 py-1.5 rounded-lg text-xs transition-all ${
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           pathname === `/the-loai/${g.slug}`
                             ? "bg-[#E50914] text-white font-bold shadow-md"
-                            : "text-white/70 hover:bg-white/[0.08] hover:text-[#FF4D4D]"
+                            : "text-gray-200 hover:bg-white/10 hover:text-white"
                         }`}
                       >
                         {g.name}
@@ -274,16 +274,16 @@ export const Navbar = () => {
                     className="text-gray-400 group-hover:rotate-180 group-hover:text-white transition-transform duration-200"
                   />
                 </button>
-                <div className="absolute top-full left-0 mt-2 w-56 bg-[#141414]/98 border border-white/10 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.95)] backdrop-blur-2xl p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="absolute top-full left-0 mt-2 w-56 bg-[#12131a] border border-white/15 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.98)] backdrop-blur-3xl p-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                   <div className="grid grid-cols-1 gap-1">
                     {COUNTRIES.map((c) => (
                       <Link
                         key={c.slug}
                         href={`/quoc-gia/${c.slug}`}
-                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all ${
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           pathname === `/quoc-gia/${c.slug}`
                             ? "bg-[#E50914] text-white font-bold"
-                            : "text-white/70 hover:bg-white/[0.08] hover:text-white"
+                            : "text-gray-200 hover:bg-white/10 hover:text-white"
                         }`}
                       >
                         <span>{c.flag}</span>
@@ -304,7 +304,7 @@ export const Navbar = () => {
                 <div
                   className={`flex items-center overflow-hidden transition-all duration-300 rounded-full ${
                     isSearchExpanded
-                      ? "w-44 sm:w-64 bg-black/80 border border-white/30 px-3 py-1.5 shadow-lg"
+                      ? "w-36 xs:w-48 sm:w-64 bg-black/95 border border-white/30 px-2.5 sm:px-3 py-1.5 shadow-lg"
                       : "w-9 h-9 bg-transparent hover:bg-white/[0.08] justify-center cursor-pointer"
                   }`}
                   onClick={() => {
@@ -330,7 +330,7 @@ export const Navbar = () => {
                         setSearchQuery(e.target.value);
                         setShowLiveSearch(true);
                       }}
-                      className="w-full bg-transparent text-xs text-white placeholder-gray-400 outline-none"
+                      className="w-full min-w-0 bg-transparent text-xs text-white placeholder-gray-400 outline-none"
                     />
                   )}
                   {isSearchExpanded && searchQuery && (
@@ -351,7 +351,7 @@ export const Navbar = () => {
 
               {/* Live Search Modal Dropdown */}
               {showLiveSearch && searchQuery.trim().length >= 2 && (
-                <div className="absolute top-full right-0 mt-3 w-[min(92vw,380px)] bg-[#141414]/98 border border-white/10 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.95)] backdrop-blur-2xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="absolute top-full right-0 mt-3 w-[min(92vw,380px)] bg-[#12131a] border border-white/15 rounded-2xl shadow-[0_25px_60px_rgba(0,0,0,0.98)] backdrop-blur-3xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
                   <div className="p-3 border-b border-white/[0.08] flex items-center justify-between">
                     <span className="text-xs font-bold text-[#FF4D4D] flex items-center gap-1.5">
                       <Film size={13} />
@@ -451,7 +451,7 @@ export const Navbar = () => {
                     />
                   </button>
                 <div
-                  className={`absolute right-0 top-full mt-2.5 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#141414]/98 shadow-[0_20px_50px_rgba(0,0,0,0.95)] backdrop-blur-2xl transition-all z-50 ${
+                  className={`absolute right-0 top-full mt-2.5 w-56 overflow-hidden rounded-2xl border border-white/15 bg-[#12131a] shadow-[0_25px_60px_rgba(0,0,0,0.98)] backdrop-blur-3xl transition-all z-50 ${
                     isUserMenuOpen
                       ? "translate-y-0 opacity-100"
                       : "-translate-y-2 pointer-events-none opacity-0"
@@ -554,7 +554,7 @@ export const Navbar = () => {
             className="fixed inset-0 bg-black/85 backdrop-blur-sm transition-opacity"
           />
 
-          <div className="fixed inset-y-0 left-0 w-[min(82vw,320px)] bg-[#141414] border-r border-white/10 shadow-2xl flex flex-col z-[101] animate-in slide-in-from-left duration-200 overflow-hidden">
+          <div className="fixed inset-y-0 left-0 w-[min(85vw,320px)] bg-[#12131a] border-r border-white/15 shadow-2xl flex flex-col z-[101] animate-in slide-in-from-left duration-200 overflow-hidden">
             {/* Header */}
             <div className="p-4 border-b border-white/[0.08] flex items-center justify-between">
               <Po3nHubLogo size="sm" />

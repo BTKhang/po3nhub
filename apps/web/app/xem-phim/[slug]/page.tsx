@@ -276,9 +276,25 @@ function WatchPageContent({ params }: { params: Promise<{ slug: string }> }) {
                   title={`${movie.name} - ${formatEpisodeName(currentEpisode.name)}`}
                   enableAds={user?.role !== "vip"}
                   adsReady={!memberLoading}
+                  onNext={
+                    nextEp
+                      ? () => {
+                          if (user) {
+                            router.push(`/xem-phim/${movie.slug}?tap=${nextEp.slug}`);
+                          } else {
+                            requestRegistration(nextEp.slug);
+                          }
+                        }
+                      : undefined
+                  }
+                  nextEpisodeLabel={nextEp ? `Tập tiếp: ${formatEpisodeName(nextEp.name)}` : undefined}
                   onEnded={() => {
-                    if (!user && nextEp) {
-                      requestRegistration(nextEp.slug);
+                    if (nextEp) {
+                      if (user) {
+                        router.push(`/xem-phim/${movie.slug}?tap=${nextEp.slug}`);
+                      } else {
+                        requestRegistration(nextEp.slug);
+                      }
                     }
                   }}
                 />
@@ -286,9 +302,9 @@ function WatchPageContent({ params }: { params: Promise<{ slug: string }> }) {
             </div>
 
             {/* Quick Episode Navigation & Control Bar */}
-            <div className="bg-[#191b24] p-4 sm:p-5 rounded-2xl border border-white/5 flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div className="bg-[#191b24] p-4 sm:p-5 rounded-2xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
               <div className="min-w-0">
-                <h1 className="text-lg sm:text-xl font-black uppercase tracking-tight truncate">
+                <h1 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">
                   {movie.name}{" "}
                   <span className="text-[#ffd875]">
                     — {formatEpisodeName(currentEpisode?.name)}
@@ -298,14 +314,15 @@ function WatchPageContent({ params }: { params: Promise<{ slug: string }> }) {
               </div>
 
               {/* Episode Step Controller & Actions */}
-              <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 {prevEp && (
                   <button
                     onClick={() => router.push(`/xem-phim/${movie.slug}?tap=${prevEp.slug}`)}
-                    className="flex items-center gap-1 px-3.5 py-2 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-xs font-bold text-white/80 transition-all"
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-xs font-bold text-white/80 transition-all cursor-pointer"
                   >
                     <SkipBack size={14} />
-                    <span className="hidden sm:inline">Tập trước ({formatEpisodeName(prevEp.name)})</span>
+                    <span className="hidden xs:inline">Tập trước ({formatEpisodeName(prevEp.name)})</span>
+                    <span className="xs:hidden">Tập trước</span>
                   </button>
                 )}
 
@@ -316,20 +333,22 @@ function WatchPageContent({ params }: { params: Promise<{ slug: string }> }) {
                         ? router.push(`/xem-phim/${movie.slug}?tap=${nextEp.slug}`)
                         : requestRegistration(nextEp.slug)
                     }
-                    className="flex items-center gap-1 px-4 py-2 bg-[#ffd875] hover:brightness-110 text-black rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md"
+                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 bg-[#E50914] hover:bg-[#ff1f2d] text-white rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-lg shadow-red-900/40 transform hover:scale-105 active:scale-95 cursor-pointer"
                   >
                     <span>Tập tiếp ({formatEpisodeName(nextEp.name)})</span>
-                    <SkipForward size={14} />
+                    <SkipForward size={15} />
                   </button>
                 )}
 
-                <MemberMovieActions
-                  movie={{
-                    movieSlug: movie.slug,
-                    movieTitle: movie.name,
-                    posterUrl: movie.poster_url,
-                  }}
-                />
+                <div className="shrink-0 ml-auto sm:ml-0">
+                  <MemberMovieActions
+                    movie={{
+                      movieSlug: movie.slug,
+                      movieTitle: movie.name,
+                      posterUrl: movie.poster_url,
+                    }}
+                  />
+                </div>
               </div>
             </div>
 
@@ -515,7 +534,7 @@ function EpisodeList({
       </div>
 
       <div className="bg-[#191b24] p-4 rounded-2xl border border-white/5 max-h-[400px] overflow-y-auto custom-scrollbar">
-        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-5 xl:grid-cols-4 gap-2.5">
+        <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-5 xl:grid-cols-4 gap-2 sm:gap-2.5">
           {episodes[currentServer]?.server_data.map((ep: ServerData, index) => {
             const isLocked = !isRegistered && index > 0;
             return (
@@ -533,7 +552,7 @@ function EpisodeList({
                     ? `${formatEpisodeName(ep.name)} - cần đăng ký để xem`
                     : formatEpisodeName(ep.name)
                 }
-                className={`h-11 flex items-center justify-center gap-1 rounded-xl text-xs font-black transition-all border ${
+                className={`h-11 px-1.5 sm:px-2 flex items-center justify-center gap-1 rounded-xl text-[11px] sm:text-xs font-black transition-all border truncate ${
                   isLocked
                     ? "bg-white/[0.02] text-white/30 border-white/5"
                     : currentEpisode?.name === ep.name
@@ -541,8 +560,8 @@ function EpisodeList({
                       : "bg-white/5 text-white/50 border-white/5 hover:border-[#ffd875]/40 hover:text-[#ffd875]"
                 }`}
               >
-                {isLocked && <Lock size={11} />}
-                {formatEpisodeName(ep.name)}
+                {isLocked && <Lock size={11} className="shrink-0" />}
+                <span className="truncate">{formatEpisodeName(ep.name)}</span>
               </Link>
             );
           })}

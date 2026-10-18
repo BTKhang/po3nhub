@@ -310,14 +310,14 @@ export default function MovieDetailPage({
               </p>
             </div>
             {/* ===== ACTION BAR ===== */}
-            <div className="flex items-center flex-wrap gap-4 md:gap-6 py-4">
+            <div className="flex items-center flex-wrap gap-3 py-3">
               {/* Xem Ngay Button */}
               <Link
                 href={`/xem-phim/${movie.slug}`}
-                className="inline-flex items-center justify-center gap-3 bg-[#ffd875] text-[#191b24] font-bold text-base md:text-lg px-7 md:px-8 py-3.5 md:py-4 rounded-full hover:brightness-110 transition-all hover:scale-[1.02] shadow-lg"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 bg-[#E50914] hover:bg-[#ff1f2d] text-white font-extrabold text-base md:text-lg px-7 md:px-8 py-3.5 rounded-xl shadow-[0_4px_25px_rgba(229,9,20,0.5)] transition-all hover:scale-[1.02] active:scale-95 cursor-pointer"
               >
-                <Play size={18} className="fill-[#191b24]" />
-                Xem Ngay
+                <Play size={20} className="fill-white" />
+                Xem Phim Ngay
               </Link>
 
               <MemberMovieActions
@@ -374,7 +374,7 @@ export default function MovieDetailPage({
                   {/* Rút gọn toggle */}
                   <button
                     onClick={() => setIsCompact(!isCompact)}
-                    className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors"
+                    className="flex items-center gap-2 text-sm text-white/50 hover:text-white transition-colors cursor-pointer"
                   >
                     Rút gọn
                     <div
@@ -389,23 +389,23 @@ export default function MovieDetailPage({
 
                 {/* Episode Grid */}
                 <div
-                  className={`grid gap-3 ${isCompact ? "grid-cols-6 sm:grid-cols-8 lg:grid-cols-10" : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-6"}`}
+                  className={`grid gap-2 sm:gap-3 ${isCompact ? "grid-cols-4 xs:grid-cols-6 sm:grid-cols-8 lg:grid-cols-10" : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-6"}`}
                 >
                   {episodes[0]?.server_data.map((ep) => (
                     <Link
                       key={ep.slug}
                       href={`/xem-phim/${movie.slug}?tap=${ep.slug}`}
-                      className={`flex items-center justify-center gap-2 bg-[#282b3a] text-white rounded-[6.4px] hover:bg-[#ffd875] hover:text-[#191b24] transition-all group ${
-                        isCompact ? "h-10 text-xs" : "h-[50px] text-sm"
+                      className={`flex items-center justify-center gap-1.5 bg-[#282b3a] text-white rounded-xl hover:bg-[#E50914] hover:text-white transition-all px-2 truncate group ${
+                        isCompact ? "h-10 text-[11px]" : "h-11 sm:h-[50px] text-xs sm:text-sm font-semibold"
                       }`}
                     >
                       {!isCompact && (
                         <Play
-                          size={12}
-                          className="text-white/40 group-hover:text-[#191b24] fill-current"
+                          size={11}
+                          className="text-white/40 group-hover:text-white fill-current shrink-0"
                         />
                       )}
-                      {formatEpisodeName(ep.name)}
+                      <span className="truncate">{formatEpisodeName(ep.name)}</span>
                     </Link>
                   ))}
                 </div>

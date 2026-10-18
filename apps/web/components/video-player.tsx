@@ -11,6 +11,8 @@ interface VideoPlayerProps {
   title?: string;
   onReady?: (art: Artplayer) => void;
   onEnded?: () => void;
+  onNext?: () => void;
+  nextEpisodeLabel?: string;
   enableAds?: boolean;
   adsReady?: boolean;
 }
@@ -21,6 +23,8 @@ export const VideoPlayer = ({
   title,
   onReady,
   onEnded,
+  onNext,
+  nextEpisodeLabel,
   enableAds = true,
   adsReady = true,
 }: VideoPlayerProps) => {
@@ -28,6 +32,7 @@ export const VideoPlayer = ({
   const adVideoRef = useRef<HTMLVideoElement>(null);
   const artInstanceRef = useRef<Artplayer | null>(null);
   const onEndedRef = useRef(onEnded);
+  const onNextRef = useRef(onNext);
 
   // Ad states - initialized with default intro-quancao.mp4
   const [introList, setIntroList] = useState<string[]>([
@@ -50,7 +55,8 @@ export const VideoPlayer = ({
 
   useEffect(() => {
     onEndedRef.current = onEnded;
-  }, [onEnded]);
+    onNextRef.current = onNext;
+  }, [onEnded, onNext]);
 
   const isEmbed =
     typeof url === "string" &&
@@ -231,6 +237,22 @@ export const VideoPlayer = ({
         autoPlayback: true,
         airplay: true,
         theme: "#E50914",
+        controls: onNext
+          ? [
+              {
+                name: "next-episode",
+                position: "left",
+                index: 10,
+                html: '<span class="art-icon" style="display:inline-flex;align-items:center;justify-content:center;color:#fff;cursor:pointer;padding:0 6px;" title="Tập tiếp theo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg></span>',
+                tooltip: nextEpisodeLabel || "Tập tiếp theo",
+                click: function () {
+                  if (onNextRef.current) {
+                    onNextRef.current();
+                  }
+                },
+              },
+            ]
+          : [],
         moreVideoAttr: {
           crossOrigin: "anonymous",
         },
@@ -324,6 +346,19 @@ export const VideoPlayer = ({
         />
       ) : (
         <div ref={artRef} className="w-full h-full" />
+      )}
+
+      {/* Floating Next Episode Button (Visible directly on player) */}
+      {onNext && !isAdPlaying && (
+        <button
+          type="button"
+          onClick={onNext}
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-black/85 hover:bg-[#E50914] text-white text-xs sm:text-sm font-black border border-white/20 hover:border-red-500 shadow-2xl backdrop-blur-md transition-all duration-200 transform hover:scale-105 active:scale-95 group/next cursor-pointer"
+          title={nextEpisodeLabel || "Tập tiếp theo"}
+        >
+          <span>{nextEpisodeLabel || "Tập tiếp theo"}</span>
+          <SkipForward size={15} className="text-[#ffd875] group-hover/next:text-white transition-colors" />
+        </button>
       )}
 
       {/* Cinema AD OVERLAY (Pre-roll and Mid-roll) */}
