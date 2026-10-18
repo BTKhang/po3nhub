@@ -72,16 +72,8 @@ export interface MoviePayload {
 
 export const memberApiBaseUrl = () => {
   const configuredUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-  if (typeof window !== "undefined") {
-    if (window.location.hostname === "localhost") {
-      return configuredUrl?.replace(/\/$/, "") || "http://localhost:3001";
-    }
-
-    return BACKEND_PROXY_BASE_URL;
-  }
-
-  return configuredUrl?.replace(/\/$/, "") || RENDER_API_BASE_URL;
+  if (configuredUrl) return configuredUrl.replace(/\/$/, "");
+  return BACKEND_PROXY_BASE_URL;
 };
 
 const STORAGE_KEYS = {
@@ -188,7 +180,7 @@ function saveStoredAccounts(accounts: AccountRecord[]) {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 2000);
+  const timeoutId = setTimeout(() => controller.abort(), 15000);
 
   try {
     const response = await fetch(`${memberApiBaseUrl()}${path}`, {
@@ -364,30 +356,52 @@ export const memberClient = {
       throw new Error("Mật khẩu mới phải có ít nhất 6 ký tự");
     }
 
-    const accounts = getStoredAccounts();
-    const accountIndex = accounts.findIndex(
-      (a) => a.email.toLowerCase() === currentUser.email.toLowerCase(),
-    );
+    try {
+      const res = await request<{ success: boolean; message: string }>("/auth/change-password", {
+        method: "POST",
+        body: JSON.stringify({
+          email: currentUser.email,
+          currentPassword: input.currentPassword,
+          newPassword: input.newPassword,
+        }),
+      });
+      return res;
+    } catch (err) {
+      // Fallback
+      const accounts = getStoredAccounts();
+      const accountIndex = accounts.findIndex(
+        (a) => a.email.toLowerCase() === currentUser.email.toLowerCase(),
+      );
 
-    const targetAccount = accounts[accountIndex];
-    if (accountIndex === -1 || !targetAccount) {
-      throw new Error("Không tìm thấy thông tin tài khoản để đổi mật khẩu");
+      const targetAccount = accounts[accountIndex];
+      if (accountIndex === -1 || !targetAccount) {
+        throw new Error(err instanceof Error ? err.message : "Không tìm thấy thông tin tài khoản");
+      }
+
+      if (targetAccount.password !== input.currentPassword) {
+        throw new Error("Mật khẩu hiện tại không chính xác");
+      }
+
+      targetAccount.password = input.newPassword;
+      targetAccount.updatedAt = new Date().toLocaleDateString("vi-VN");
+      accounts[accountIndex] = targetAccount;
+      saveStoredAccounts(accounts);
+
+      return { success: true, message: "Đổi mật khẩu thành công!" };
     }
-
-    if (targetAccount.password !== input.currentPassword) {
-      throw new Error("Mật khẩu hiện tại không chính xác");
-    }
-
-    targetAccount.password = input.newPassword;
-    targetAccount.updatedAt = new Date().toLocaleDateString("vi-VN");
-    accounts[accountIndex] = targetAccount;
-    saveStoredAccounts(accounts);
-
-    return { success: true, message: "Đổi mật khẩu thành công!" };
   },
 
-  // ADMIN ACCOUNT MANAGEMENT METHODS
+  // ADMIN ACCOUNT MANAGEMENT METHODS (Shared Real Database)
   async getAllAccounts(): Promise<AccountRecord[]> {
+    try {
+      const serverAccounts = await request<AccountRecord[]>("/admin/accounts");
+      if (Array.isArray(serverAccounts) && serverAccounts.length > 0) {
+        saveStoredAccounts(serverAccounts);
+        return serverAccounts;
+      }
+    } catch (e) {
+      console.warn("Failed to fetch accounts from database, using local cache:", e);
+    }
     return getStoredAccounts();
   },
 
@@ -395,50 +409,72 @@ export const memberClient = {
     accountId: string,
     updates: Partial<AccountRecord>,
   ): Promise<AccountRecord> {
-    const accounts = getStoredAccounts();
-    const index = accounts.findIndex((a) => a.id === accountId);
-    const acc = accounts[index];
-    if (index === -1 || !acc) {
-      throw new Error("Không tìm thấy tài khoản cần cập nhật");
-    }
-
-    // Do not allow changing master admin email or demoting role
-    if (acc.email === MASTER_ADMIN_ACCOUNT.email) {
-      if (updates.email && updates.email !== MASTER_ADMIN_ACCOUNT.email) {
-        throw new Error("Không được thay đổi email của Quản trị viên Master");
-      }
-      if (updates.role && updates.role !== "admin") {
-        throw new Error("Không thể hạ quyền của Quản trị viên Master");
-      }
-      if (updates.status && updates.status === "locked") {
-        throw new Error("Không thể khóa tài khoản Quản trị viên Master");
-      }
-    }
-
-    const updatedAcc: AccountRecord = {
-      ...acc,
-      ...updates,
-      updatedAt: new Date().toLocaleDateString("vi-VN"),
-    };
-    accounts[index] = updatedAcc;
-
-    saveStoredAccounts(accounts);
-
-    // If updating currently logged in user, refresh current user in storage
-    const currentUser = getLocalItem<MemberUser | null>(STORAGE_KEYS.USER, null);
-    if (currentUser && currentUser.id === accountId) {
-      setLocalItem(STORAGE_KEYS.USER, {
-        ...currentUser,
-        name: updatedAcc.name,
-        role: updatedAcc.role,
-        status: updatedAcc.status,
+    try {
+      const updated = await request<AccountRecord>("/admin/accounts", {
+        method: "PATCH",
+        body: JSON.stringify({ id: accountId, updates }),
       });
-    }
+      const accounts = getStoredAccounts();
+      const idx = accounts.findIndex((a) => a.id === accountId);
+      if (idx !== -1) {
+        accounts[idx] = updated;
+        saveStoredAccounts(accounts);
+      }
+      return updated;
+    } catch (err) {
+      console.warn("Server update failed, falling back to local:", err);
+      const accounts = getStoredAccounts();
+      const index = accounts.findIndex((a) => a.id === accountId);
+      const acc = accounts[index];
+      if (index === -1 || !acc) {
+        throw new Error("Không tìm thấy tài khoản cần cập nhật");
+      }
 
-    return updatedAcc;
+      // Do not allow changing master admin email or demoting role
+      if (acc.email === MASTER_ADMIN_ACCOUNT.email) {
+        if (updates.email && updates.email !== MASTER_ADMIN_ACCOUNT.email) {
+          throw new Error("Không được thay đổi email của Quản trị viên Master");
+        }
+        if (updates.role && updates.role !== "admin") {
+          throw new Error("Không thể hạ quyền của Quản trị viên Master");
+        }
+        if (updates.status && updates.status === "locked") {
+          throw new Error("Không thể khóa tài khoản Quản trị viên Master");
+        }
+      }
+
+      const updatedAcc: AccountRecord = {
+        ...acc,
+        ...updates,
+        updatedAt: new Date().toLocaleDateString("vi-VN"),
+      };
+      accounts[index] = updatedAcc;
+
+      saveStoredAccounts(accounts);
+
+      // If updating currently logged in user, refresh current user in storage
+      const currentUser = getLocalItem<MemberUser | null>(STORAGE_KEYS.USER, null);
+      if (currentUser && currentUser.id === accountId) {
+        setLocalItem(STORAGE_KEYS.USER, {
+          ...currentUser,
+          name: updatedAcc.name,
+          role: updatedAcc.role,
+          status: updatedAcc.status,
+        });
+      }
+
+      return updatedAcc;
+    }
   },
 
   async adminDeleteAccount(accountId: string): Promise<{ success: boolean }> {
+    try {
+      await request<{ success: boolean }>(`/admin/accounts?id=${encodeURIComponent(accountId)}`, {
+        method: "DELETE",
+      });
+    } catch (err) {
+      console.warn("Server delete failed:", err);
+    }
     const accounts = getStoredAccounts();
     const target = accounts.find((a) => a.id === accountId);
     if (target?.email === MASTER_ADMIN_ACCOUNT.email) {
@@ -456,31 +492,48 @@ export const memberClient = {
     password: string;
     role?: "admin" | "member" | "vip";
   }): Promise<AccountRecord> {
-    const accounts = getStoredAccounts();
-    const email = data.email.trim().toLowerCase();
-    if (accounts.some((a) => a.email.toLowerCase() === email)) {
-      throw new Error("Email này đã tồn tại trong hệ thống");
+    try {
+      const newAcc = await request<AccountRecord>("/admin/accounts", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      const accounts = getStoredAccounts();
+      accounts.push(newAcc);
+      saveStoredAccounts(accounts);
+      return newAcc;
+    } catch (err) {
+      console.warn("Server create account failed, falling back to local:", err);
+      const accounts = getStoredAccounts();
+      const email = data.email.trim().toLowerCase();
+      if (accounts.some((a) => a.email.toLowerCase() === email)) {
+        throw new Error("Email này đã tồn tại trong hệ thống");
+      }
+
+      const nowStr = new Date().toLocaleDateString("vi-VN");
+      const newAcc: AccountRecord = {
+        id: `usr_${Date.now().toString(36)}`,
+        name: data.name.trim(),
+        email,
+        password: data.password,
+        role: data.role || "member",
+        status: "active",
+        createdAt: nowStr,
+        updatedAt: nowStr,
+        lastLogin: "Chưa đăng nhập",
+      };
+
+      accounts.push(newAcc);
+      saveStoredAccounts(accounts);
+      return newAcc;
     }
-
-    const nowStr = new Date().toLocaleDateString("vi-VN");
-    const newAcc: AccountRecord = {
-      id: `usr_${Date.now().toString(36)}`,
-      name: data.name.trim(),
-      email,
-      password: data.password,
-      role: data.role || "member",
-      status: "active",
-      createdAt: nowStr,
-      updatedAt: nowStr,
-      lastLogin: "Chưa đăng nhập",
-    };
-
-    accounts.push(newAcc);
-    saveStoredAccounts(accounts);
-    return newAcc;
   },
 
   async resetToRealData(): Promise<{ success: boolean; accountsCount: number }> {
+    try {
+      await request<{ success: boolean }>("/admin/reset", { method: "POST" });
+    } catch (e) {
+      console.warn("Server reset failed:", e);
+    }
     const accounts = [MASTER_ADMIN_ACCOUNT];
     saveStoredAccounts(accounts);
     return { success: true, accountsCount: 1 };
