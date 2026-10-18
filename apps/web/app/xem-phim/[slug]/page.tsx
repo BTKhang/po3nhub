@@ -193,6 +193,24 @@ function WatchPageContent({ params }: { params: Promise<{ slug: string }> }) {
     openAuth("register");
   };
 
+  const handleSelectEpisode = (ep: ServerData) => {
+    const isFirstEpisode = currentServerEpisodes[0]?.slug === ep.slug;
+    if (!user && !isFirstEpisode) {
+      requestRegistration(ep.slug);
+      return;
+    }
+
+    setCurrentEpisode({
+      name: ep.name,
+      slug: ep.slug,
+      url: ep.link_m3u8 || ep.link_embed,
+    });
+
+    if (typeof window !== "undefined") {
+      window.history.pushState(null, "", `/xem-phim/${slug}?tap=${ep.slug}`);
+    }
+  };
+
   const transformListMovies = (list: ListMovie[]) => {
     return list.map((m) => ({
       id: m._id,
@@ -270,31 +288,17 @@ function WatchPageContent({ params }: { params: Promise<{ slug: string }> }) {
             <div className={`relative mb-4 transition-all duration-300 ${isCinemaMode ? "z-40 shadow-[0_0_80px_rgba(0,0,0,0.9)]" : ""}`}>
               {currentEpisode?.url && (
                 <VideoPlayer
-                  key={`${movie.slug}-${currentEpisode.slug || currentEpisode.url}`}
+                  key={movie.slug}
                   url={currentEpisode.url}
                   poster={movie.thumb_url}
                   title={`${movie.name} - ${formatEpisodeName(currentEpisode.name)}`}
                   enableAds={user?.role !== "vip"}
                   adsReady={!memberLoading}
-                  onNext={
-                    nextEp
-                      ? () => {
-                          if (user) {
-                            router.push(`/xem-phim/${movie.slug}?tap=${nextEp.slug}`);
-                          } else {
-                            requestRegistration(nextEp.slug);
-                          }
-                        }
-                      : undefined
-                  }
+                  onNext={nextEp ? () => handleSelectEpisode(nextEp) : undefined}
                   nextEpisodeLabel={nextEp ? `Tập tiếp: ${formatEpisodeName(nextEp.name)}` : undefined}
                   onEnded={() => {
                     if (nextEp) {
-                      if (user) {
-                        router.push(`/xem-phim/${movie.slug}?tap=${nextEp.slug}`);
-                      } else {
-                        requestRegistration(nextEp.slug);
-                      }
+                      handleSelectEpisode(nextEp);
                     }
                   }}
                 />
@@ -317,7 +321,7 @@ function WatchPageContent({ params }: { params: Promise<{ slug: string }> }) {
               <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
                 {prevEp && (
                   <button
-                    onClick={() => router.push(`/xem-phim/${movie.slug}?tap=${prevEp.slug}`)}
+                    onClick={() => handleSelectEpisode(prevEp)}
                     className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-xs font-bold text-white/80 transition-all cursor-pointer"
                   >
                     <SkipBack size={14} />
@@ -328,11 +332,7 @@ function WatchPageContent({ params }: { params: Promise<{ slug: string }> }) {
 
                 {nextEp && (
                   <button
-                    onClick={() =>
-                      user
-                        ? router.push(`/xem-phim/${movie.slug}?tap=${nextEp.slug}`)
-                        : requestRegistration(nextEp.slug)
-                    }
+                    onClick={() => handleSelectEpisode(nextEp)}
                     className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 bg-[#E50914] hover:bg-[#ff1f2d] text-white rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-lg shadow-red-900/40 transform hover:scale-105 active:scale-95 cursor-pointer"
                   >
                     <span>Tập tiếp ({formatEpisodeName(nextEp.name)})</span>
@@ -362,6 +362,7 @@ function WatchPageContent({ params }: { params: Promise<{ slug: string }> }) {
                 onServerChange={setCurrentServer}
                 isRegistered={Boolean(user)}
                 onRegisterRequired={() => requestRegistration()}
+                onSelectEpisode={handleSelectEpisode}
               />
             </div>
 
@@ -428,6 +429,7 @@ function WatchPageContent({ params }: { params: Promise<{ slug: string }> }) {
                 onServerChange={setCurrentServer}
                 isRegistered={Boolean(user)}
                 onRegisterRequired={() => requestRegistration()}
+                onSelectEpisode={handleSelectEpisode}
               />
             </div>
 
@@ -490,12 +492,13 @@ function WatchPageContent({ params }: { params: Promise<{ slug: string }> }) {
 
 interface EpisodeListProps {
   episodes: Episode[];
-  currentEpisode: { name: string; url: string } | null;
+  currentEpisode: { name: string; url: string; slug?: string } | null;
   slug: string;
   currentServer: number;
   onServerChange: (serverIndex: number) => void;
   isRegistered: boolean;
   onRegisterRequired: (episodeSlug?: string) => void;
+  onSelectEpisode?: (ep: ServerData) => void;
 }
 
 function EpisodeList({
@@ -506,6 +509,7 @@ function EpisodeList({
   onServerChange,
   isRegistered,
   onRegisterRequired,
+  onSelectEpisode,
 }: EpisodeListProps) {
   if (!episodes || episodes.length === 0) return null;
 
@@ -542,9 +546,11 @@ function EpisodeList({
                 key={ep.slug}
                 href={`/xem-phim/${slug}?tap=${ep.slug}`}
                 onClick={(event) => {
+                  event.preventDefault();
                   if (isLocked) {
-                    event.preventDefault();
                     onRegisterRequired(ep.slug);
+                  } else if (onSelectEpisode) {
+                    onSelectEpisode(ep);
                   }
                 }}
                 aria-label={
@@ -552,7 +558,7 @@ function EpisodeList({
                     ? `${formatEpisodeName(ep.name)} - cần đăng ký để xem`
                     : formatEpisodeName(ep.name)
                 }
-                className={`h-11 px-1.5 sm:px-2 flex items-center justify-center gap-1 rounded-xl text-[11px] sm:text-xs font-black transition-all border truncate ${
+                className={`h-11 px-1.5 sm:px-2 flex items-center justify-center gap-1 rounded-xl text-[11px] sm:text-xs font-black transition-all border truncate cursor-pointer ${
                   isLocked
                     ? "bg-white/[0.02] text-white/30 border-white/5"
                     : currentEpisode?.name === ep.name

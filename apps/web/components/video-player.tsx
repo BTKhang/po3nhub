@@ -3,7 +3,16 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Artplayer from "artplayer";
 import Hls from "hls.js";
-import { Volume2, VolumeX, SkipForward, Play, ShieldAlert } from "lucide-react";
+import {
+  Volume2,
+  VolumeX,
+  SkipForward,
+  SkipBack,
+  Play,
+  ShieldAlert,
+  FastForward,
+  Rewind,
+} from "lucide-react";
 
 interface VideoPlayerProps {
   url: string;
@@ -28,6 +37,7 @@ export const VideoPlayer = ({
   enableAds = true,
   adsReady = true,
 }: VideoPlayerProps) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const artRef = useRef<HTMLDivElement>(null);
   const adVideoRef = useRef<HTMLVideoElement>(null);
   const artInstanceRef = useRef<Artplayer | null>(null);
@@ -42,7 +52,8 @@ export const VideoPlayer = ({
     "/intro/intro-quancao.mp4",
   ]);
 
-  const [isAdPlaying, setIsAdPlaying] = useState(false);
+  const [isAdPlaying, setIsAdPlaying] = useState(enableAds);
+  const [movieReady, setMovieReady] = useState(!enableAds);
   const [adType, setAdType] = useState<"preroll" | "midroll">("preroll");
   const [currentAdUrl, setCurrentAdUrl] = useState("/intro/intro-quancao.mp4");
   const [adCountdown, setAdCountdown] = useState(5);
@@ -52,6 +63,23 @@ export const VideoPlayer = ({
   const [adCurrentTime, setAdCurrentTime] = useState(0);
   const savedPlaybackTimeRef = useRef<number>(0);
   const nextMidrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Double tap gesture states (tua 10s bên trái / bên phải)
+  const lastTapTimeRef = useRef<number>(0);
+  const lastTapPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [seekFeedback, setSeekFeedback] = useState<{
+    type: "backward" | "forward";
+    time: number;
+  } | null>(null);
+
+  // Auto clear double tap seek visual feedback
+  useEffect(() => {
+    if (!seekFeedback) return;
+    const timer = setTimeout(() => {
+      setSeekFeedback(null);
+    }, 700);
+    return () => clearTimeout(timer);
+  }, [seekFeedback]);
 
   useEffect(() => {
     onEndedRef.current = onEnded;
@@ -120,8 +148,9 @@ export const VideoPlayer = ({
   // Finish or skip ad
   const handleDismissAd = useCallback(() => {
     setIsAdPlaying(false);
+    setMovieReady(true);
 
-    // Resume main movie player
+    // Resume main movie player if already initialized
     if (artInstanceRef.current) {
       try {
         if (savedPlaybackTimeRef.current > 0) {
@@ -190,9 +219,11 @@ export const VideoPlayer = ({
       const selectedIntro =
         introList[Math.floor(Math.random() * introList.length)] ||
         "/intro/intro-quancao.mp4";
+      setMovieReady(false);
       playAd("preroll", selectedIntro);
     } else {
       setIsAdPlaying(false);
+      setMovieReady(true);
     }
 
     return () => {
@@ -200,11 +231,12 @@ export const VideoPlayer = ({
         clearTimeout(nextMidrollTimeoutRef.current);
       }
     };
-  }, [url, enableAds, adsReady, introList, playAd]);
+  }, [enableAds, adsReady, introList, playAd]);
 
-  // Initialize main video player (Artplayer)
+  // Initialize main video player (Artplayer) - ONLY when movieReady is true (ad is finished)
   useEffect(() => {
-    if (!artRef.current || isEmbed || !adsReady) return;
+    if (!artRef.current || isEmbed || !adsReady || !movieReady) return;
+    if (artInstanceRef.current) return;
 
     let hlsInstance: Hls | null = null;
     let art: Artplayer | null = null;
@@ -217,7 +249,7 @@ export const VideoPlayer = ({
         volume: 0.75,
         isLive: false,
         muted: false,
-        autoplay: !enableAds, // if ads enabled, ad plays first
+        autoplay: true,
         pip: true,
         autoSize: true,
         autoMini: true,
@@ -237,6 +269,8 @@ export const VideoPlayer = ({
         autoPlayback: true,
         airplay: true,
         theme: "#E50914",
+        lock: true,
+        fastForward: false,
         controls: onNext
           ? [
               {
@@ -331,10 +365,102 @@ export const VideoPlayer = ({
         });
       }
     };
-  }, [url, poster, isEmbed, onReady, enableAds, adsReady]);
+  }, [poster, isEmbed, onReady, enableAds, adsReady, movieReady]);
+
+  // Switch video stream seamlessly when URL changes without destroying player / preserving fullscreen
+  useEffect(() => {
+    if (!artInstanceRef.current || !url || isEmbed || !movieReady) return;
+    if (artInstanceRef.current.url === url) return;
+
+    try {
+      artInstanceRef.current.switchUrl(url).then(() => {
+        artInstanceRef.current?.play();
+      }).catch((err) => {
+        console.warn("Failed to switch video URL:", err);
+      });
+    } catch {
+      // ignore
+    }
+  }, [url, isEmbed, movieReady]);
+
+  // Gesture double tap handler (tua 10s bên trái / bên phải)
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (isAdPlaying || isEmbed) return;
+    const target = e.target as HTMLElement;
+    if (
+      target.closest(
+        ".art-control, .art-controls, .art-bottom, .art-layer, button, a, input, select, .pointer-events-auto",
+      )
+    ) {
+      return;
+    }
+
+    const now = Date.now();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+
+    const diffTime = now - lastTapTimeRef.current;
+    const diffX = Math.abs(x - lastTapPosRef.current.x);
+    const diffY = Math.abs(y - lastTapPosRef.current.y);
+
+    if (diffTime < 400 && diffX < 70 && diffY < 70) {
+      const relX = (x - rect.left) / rect.width;
+      if (relX < 0.45) {
+        // Double-tap on Left: Rewind 10s
+        if (artInstanceRef.current) {
+          const cur = artInstanceRef.current.currentTime || 0;
+          const nextTime = Math.max(0, cur - 10);
+          artInstanceRef.current.currentTime = nextTime;
+          artInstanceRef.current.notice.show = "Tua lại 10 giây";
+          setSeekFeedback({ type: "backward", time: now });
+        }
+      } else if (relX > 0.55) {
+        // Double-tap on Right: Fast forward 10s
+        if (artInstanceRef.current) {
+          const cur = artInstanceRef.current.currentTime || 0;
+          const dur = artInstanceRef.current.duration || cur + 10;
+          const nextTime = Math.min(dur, cur + 10);
+          artInstanceRef.current.currentTime = nextTime;
+          artInstanceRef.current.notice.show = "Tua tới 10 giây";
+          setSeekFeedback({ type: "forward", time: now });
+        }
+      }
+      lastTapTimeRef.current = 0;
+    } else {
+      lastTapTimeRef.current = now;
+      lastTapPosRef.current = { x, y };
+    }
+  };
 
   return (
-    <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-2xl transition-all duration-300 border border-white/5 ring-1 ring-white/10 group">
+    <div
+      ref={containerRef}
+      onPointerDown={handlePointerDown}
+      className="relative w-full aspect-video rounded-xl overflow-hidden bg-black shadow-2xl transition-all duration-300 border border-white/5 ring-1 ring-white/10 group select-none"
+    >
+      {/* Double-tap Seek Feedback Overlays */}
+      {seekFeedback?.type === "backward" && (
+        <div className="absolute inset-y-0 left-0 w-2/5 flex items-center justify-center bg-gradient-to-r from-black/60 to-transparent pointer-events-none z-40 rounded-r-full animate-in fade-in zoom-in-75 duration-150">
+          <div className="flex flex-col items-center gap-1.5 text-white bg-black/75 px-4 py-3 rounded-2xl border border-white/20 backdrop-blur-md shadow-2xl">
+            <div className="flex items-center -space-x-1 animate-pulse text-[#ffd875]">
+              <Rewind size={26} className="fill-current" />
+            </div>
+            <span className="text-xs font-black tracking-wider text-white">-10 giây</span>
+          </div>
+        </div>
+      )}
+
+      {seekFeedback?.type === "forward" && (
+        <div className="absolute inset-y-0 right-0 w-2/5 flex items-center justify-center bg-gradient-to-l from-black/60 to-transparent pointer-events-none z-40 rounded-l-full animate-in fade-in zoom-in-75 duration-150">
+          <div className="flex flex-col items-center gap-1.5 text-white bg-black/75 px-4 py-3 rounded-2xl border border-white/20 backdrop-blur-md shadow-2xl">
+            <div className="flex items-center -space-x-1 animate-pulse text-[#ffd875]">
+              <FastForward size={26} className="fill-current" />
+            </div>
+            <span className="text-xs font-black tracking-wider text-white">+10 giây</span>
+          </div>
+        </div>
+      )}
       {/* Main Video Viewport */}
       {isEmbed ? (
         <iframe
