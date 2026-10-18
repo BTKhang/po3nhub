@@ -474,19 +474,6 @@ export const VideoPlayer = ({
         <div ref={artRef} className="w-full h-full" />
       )}
 
-      {/* Floating Next Episode Button (Visible directly on player) */}
-      {onNext && !isAdPlaying && (
-        <button
-          type="button"
-          onClick={onNext}
-          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-20 flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-xl bg-black/85 hover:bg-[#E50914] text-white text-xs sm:text-sm font-black border border-white/20 hover:border-red-500 shadow-2xl backdrop-blur-md transition-all duration-200 transform hover:scale-105 active:scale-95 group/next cursor-pointer"
-          title={nextEpisodeLabel || "Tập tiếp theo"}
-        >
-          <span>{nextEpisodeLabel || "Tập tiếp theo"}</span>
-          <SkipForward size={15} className="text-[#ffd875] group-hover/next:text-white transition-colors" />
-        </button>
-      )}
-
       {/* Cinema AD OVERLAY (Pre-roll and Mid-roll) */}
       {isAdPlaying && (
         <div className="absolute inset-0 z-50 bg-black flex flex-col justify-between select-none animate-in fade-in duration-200">

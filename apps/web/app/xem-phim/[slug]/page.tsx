@@ -306,49 +306,52 @@ function WatchPageContent({ params }: { params: Promise<{ slug: string }> }) {
             </div>
 
             {/* Quick Episode Navigation & Control Bar */}
-            <div className="bg-[#191b24] p-4 sm:p-5 rounded-2xl border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-              <div className="min-w-0">
-                <h1 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">
-                  {movie.name}{" "}
-                  <span className="text-[#ffd875]">
-                    — {formatEpisodeName(currentEpisode?.name)}
-                  </span>
-                </h1>
-                <p className="text-xs text-white/40 mt-0.5 truncate">{movie.origin_name}</p>
+            <div className="bg-[#191b24] p-4 sm:p-5 rounded-2xl border border-white/5 space-y-4 mb-6">
+              {/* Row 1: Movie Title & Episode Navigation */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-base sm:text-xl font-black uppercase tracking-tight truncate">
+                    {movie.name}{" "}
+                    <span className="text-[#ffd875]">
+                      — {formatEpisodeName(currentEpisode?.name)}
+                    </span>
+                  </h1>
+                  <p className="text-xs text-white/40 mt-0.5 truncate">{movie.origin_name}</p>
+                </div>
+
+                {/* Episode Step Buttons (Horizontal, Single-line, Never squished!) */}
+                <div className="flex items-center gap-2.5 shrink-0">
+                  {prevEp && (
+                    <button
+                      onClick={() => handleSelectEpisode(prevEp)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white/80 hover:text-white border border-white/10 text-xs font-bold whitespace-nowrap shrink-0 transition-all cursor-pointer"
+                    >
+                      <SkipBack size={14} />
+                      <span>Tập trước</span>
+                    </button>
+                  )}
+
+                  {nextEp && (
+                    <button
+                      onClick={() => handleSelectEpisode(nextEp)}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#E50914] hover:bg-[#ff1f2d] text-white text-xs sm:text-sm font-black uppercase tracking-wider whitespace-nowrap shrink-0 shadow-lg shadow-red-950/40 transition-all transform hover:scale-105 active:scale-95 cursor-pointer"
+                    >
+                      <span>Tập tiếp ({formatEpisodeName(nextEp.name)})</span>
+                      <SkipForward size={16} />
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {/* Episode Step Controller & Actions */}
-              <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                {prevEp && (
-                  <button
-                    onClick={() => handleSelectEpisode(prevEp)}
-                    className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2.5 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 text-xs font-bold text-white/80 transition-all cursor-pointer"
-                  >
-                    <SkipBack size={14} />
-                    <span className="hidden xs:inline">Tập trước ({formatEpisodeName(prevEp.name)})</span>
-                    <span className="xs:hidden">Tập trước</span>
-                  </button>
-                )}
-
-                {nextEp && (
-                  <button
-                    onClick={() => handleSelectEpisode(nextEp)}
-                    className="flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2.5 bg-[#E50914] hover:bg-[#ff1f2d] text-white rounded-xl text-xs sm:text-sm font-black uppercase tracking-wider transition-all shadow-lg shadow-red-900/40 transform hover:scale-105 active:scale-95 cursor-pointer"
-                  >
-                    <span>Tập tiếp ({formatEpisodeName(nextEp.name)})</span>
-                    <SkipForward size={15} />
-                  </button>
-                )}
-
-                <div className="shrink-0 ml-auto sm:ml-0">
-                  <MemberMovieActions
-                    movie={{
-                      movieSlug: movie.slug,
-                      movieTitle: movie.name,
-                      posterUrl: movie.poster_url,
-                    }}
-                  />
-                </div>
+              {/* Row 2: Member Movie Actions (Yêu thích, Tủ phim, Chia sẻ, Bình luận, Đánh giá) */}
+              <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between flex-wrap gap-4">
+                <MemberMovieActions
+                  movie={{
+                    movieSlug: movie.slug,
+                    movieTitle: movie.name,
+                    posterUrl: movie.poster_url,
+                  }}
+                />
               </div>
             </div>
 
