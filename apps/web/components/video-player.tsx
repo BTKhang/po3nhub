@@ -81,6 +81,24 @@ export const VideoPlayer = ({
     return () => clearTimeout(timer);
   }, [seekFeedback]);
 
+  const titleRef = useRef(title);
+
+  useEffect(() => {
+    titleRef.current = title;
+    if (artInstanceRef.current && title) {
+      try {
+        const pauseNotice = `Phim đang xem: ${title}`;
+        artInstanceRef.current.i18n?.update?.({
+          en: { Pause: pauseNotice },
+          "zh-cn": { Pause: pauseNotice },
+          vi: { Pause: pauseNotice },
+        });
+      } catch {
+        // ignore
+      }
+    }
+  }, [title]);
+
   useEffect(() => {
     onEndedRef.current = onEnded;
     onNextRef.current = onNext;
@@ -251,7 +269,7 @@ export const VideoPlayer = ({
         muted: false,
         autoplay: true,
         pip: true,
-        autoSize: true,
+        autoSize: false,
         autoMini: true,
         screenshot: true,
         setting: true,
@@ -271,6 +289,17 @@ export const VideoPlayer = ({
         theme: "#E50914",
         lock: true,
         fastForward: false,
+        i18n: {
+          en: {
+            Pause: title ? `Phim đang xem: ${title}` : "Tạm dừng",
+          },
+          "zh-cn": {
+            Pause: title ? `Phim đang xem: ${title}` : "暂停",
+          },
+          vi: {
+            Pause: title ? `Phim đang xem: ${title}` : "Tạm dừng",
+          },
+        },
         controls: onNext
           ? [
               {
@@ -313,6 +342,20 @@ export const VideoPlayer = ({
       });
 
       artInstanceRef.current = art;
+
+      art.on("pause", () => {
+        const movieTitle = titleRef.current || "";
+        if (art) {
+          art.notice.show = movieTitle ? `Phim đang xem: ${movieTitle}` : "Tạm dừng";
+        }
+      });
+
+      art.on("video:pause", () => {
+        const movieTitle = titleRef.current || "";
+        if (art) {
+          art.notice.show = movieTitle ? `Phim đang xem: ${movieTitle}` : "Tạm dừng";
+        }
+      });
 
       art.on("video:ended", () => {
         if (onEndedRef.current) {

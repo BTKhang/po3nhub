@@ -124,3 +124,4 @@ export function verifyToken(token?: string | null): { id: string; email: string 
     return null;
   }
 }
+
