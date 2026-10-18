@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://po3nhub.net/sitemap.xml

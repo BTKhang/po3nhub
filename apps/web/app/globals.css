@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #090a0f;
+  --foreground: #f3f4f6;
+  --primary: #E50914;
+  --primary-hover: #ff1f2d;
+  --card-bg: #14151d;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-be-vietnam-pro), system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090a0f;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #232533;
+  border-radius: 9999px;
+  border: 2px solid #090a0f;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #35384d;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(229, 9, 20, 0.4);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(229, 9, 20, 0.8);
+}
+
+/* Video Player Customizations */
+.artplayer-app {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7);
+}
+
+.art-control-progress-inner {
+  background: #E50914 !important;
+}
+
+/* Swiper navigation refinement */
+.swiper-button-prev::after,
+.swiper-button-next::after {
+  display: none;
+}
+
+/* Development overlays cleanup */
+#nextjs-portal,
+[data-nextjs-toast],
+[data-nextjs-dialog],
+.__next-dev-tools-icon {
+  display: none !important;
+}
+
+/* Smooth keyframes */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
